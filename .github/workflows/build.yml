@@ -24,23 +24,25 @@ jobs:
 
       - name: Bersihkan KSU Lama & Pasang KernelSU-Next
         run: |
-          rm -rf KernelSU drivers/kernelsu
+          rm -rf KernelSU KernelSU-Next drivers/kernelsu
           sed -i '/kernelsu/d' drivers/Kconfig drivers/Makefile
           GH_HOST="github.com"
           KSUN_REPO="KernelSU-Next/KernelSU-Next.git"
-          git clone --depth=1 -b next "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
-          bash KernelSU-Next/kernel/setup.sh
-          grep -q "kernelsu" drivers/Makefile || echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
-          grep -q "kernelsu" drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
+          git clone --depth=1 "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
+          ln -sf "$PWD/KernelSU-Next/kernel" "$PWD/drivers/kernelsu"
+          echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
+          sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
 
       - name: Integrasi NoMount Terbaru
         run: |
+          rm -rf nomount_src drivers/nomount
+          sed -i '/nomount/d' drivers/Kconfig drivers/Makefile
           GH_HOST="github.com"
           NM_REPO="maxsteeel/nomount.git"
-          git clone --depth=1 -b dev "https://${GH_HOST}/${NM_REPO}" nomount_src
-          bash nomount_src/kernel/setup.sh
-          grep -q "nomount" drivers/Makefile || echo 'obj-$(CONFIG_NOMOUNT) += nomount/' >> drivers/Makefile
-          grep -q "nomount" drivers/Kconfig || sed -i '/endmenu/i source "drivers/nomount/Kconfig"' drivers/Kconfig
+          git clone --depth=1 "https://${GH_HOST}/${NM_REPO}" nomount_src
+          ln -sf "$PWD/nomount_src/kernel" "$PWD/drivers/nomount"
+          echo 'obj-$(CONFIG_NOMOUNT) += nomount/' >> drivers/Makefile
+          sed -i '/endmenu/i source "drivers/nomount/Kconfig"' drivers/Kconfig
 
       - name: Atur Defconfig Nexus Lavender
         run: |
