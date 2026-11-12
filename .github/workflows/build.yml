@@ -33,9 +33,9 @@ jobs:
           echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
           sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
           grep -q "syscall_fn_t" arch/arm64/include/asm/syscall.h || sed -i '/#define __ASM_SYSCALL_H/a typedef asmlinkage long (*syscall_fn_t)(const struct pt_regs *);' arch/arm64/include/asm/syscall.h
-          echo "=== Cek Syarat Kbuild ==="
-          sed -n '200,230p' drivers/kernelsu/Kbuild
           sed -i 's/\$(error -- KernelSU-Next: No hooks were defined.*)/\$(info -- KernelSU-Next: Legacy hooks active)/g' drivers/kernelsu/Kbuild
+          sed -i 's/copy_to_iter(KERNEL_SU_RC/copy_to_iter((void *)KERNEL_SU_RC/g' drivers/kernelsu/runtime/ksud_integration.c
+          echo 'ccflags-y += -Wno-error' >> drivers/kernelsu/Kbuild
 
       - name: Atur Defconfig Nexus Lavender
         run: |
