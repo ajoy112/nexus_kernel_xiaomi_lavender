@@ -45,14 +45,6 @@ jobs:
           fi
           echo "Menggunakan Defconfig: ${DEFCONFIG}"
           echo "DEFCONFIG_FILE=${DEFCONFIG}" >> $GITHUB_ENV
-          sed -i '/CONFIG_KSU/d' "arch/arm64/configs/${DEFCONFIG}"
-          sed -i '/CONFIG_COMPAT_VDSO/d' "arch/arm64/configs/${DEFCONFIG}"
-          cat << 'EOF' >> "arch/arm64/configs/${DEFCONFIG}"
-          CONFIG_KSU=y
-          CONFIG_KSU_MANUAL_HOOK=y
-          CONFIG_KSU_KPROBE_HOOK=n
-          CONFIG_COMPAT_VDSO=n
-          EOF
 
       - name: Compile Kernel
         run: |
@@ -60,8 +52,17 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           make O=out ${{ env.DEFCONFIG_FILE }}
+          ./scripts/config --file out/.config \
+            -e CONFIG_KSU \
+            -e CONFIG_KSU_MANUAL_HOOK \
+            -d CONFIG_KSU_KPROBE_HOOK \
+            -d CONFIG_KPROBES \
+            -d CONFIG_COMPAT_VDSO
+          make O=out olddefconfig
           set -o pipefail
           make -j$(nproc) O=out \
+            CONFIG_KSU=y \
+            CONFIG_KSU_MANUAL_HOOK=y \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
@@ -72,7 +73,7 @@ jobs:
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
             STRIP=llvm-strip \
-            LD=ld.lld 2>&1 | tee build.log || { echo "=== DETAIL ERROR DITEMUKAN ==="; grep -B 2 -A 5 "error:" build.log; exit 1; }
+            LD=ld.lld 2>&1 | tee build.log || { echo "=== DETAIL ERROR DITEMUKAN ==="; grep -i -B 2 -A 4 -E "error:|stop|undefined" build.log | tail -n 40; exit 1; }
           ls -lh out/arch/arm64/boot/Image.gz-dtb
 
       - name: Package AnyKernel3 Nexus Lavender
