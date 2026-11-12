@@ -17,10 +17,11 @@ jobs:
       - name: Install Dependencies & Toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git gnupg gperf liblz4-tool libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 wget tar zstd
+          sudo apt-get install -y bc bison build-essential ccache curl flex git gnupg gperf liblz4-tool libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 wget tar zstd jq
           mkdir -p clang
-          DOMAIN_RAW="://githubusercontent.com"
-          LATEST_URL=$(curl -s "https://${DOMAIN_RAW}/ZyCromerZ/Clang/main/Clang-main-lastbuild.txt")
+          API_HOST="://github.com"
+          LATEST_URL=$(curl -s "https://${API_HOST}/repos/ZyCromerZ/Clang/releases/latest" | jq -r '.assets[] | select(.name | endswith(".tar.gz")) | .browser_download_url' | head -n 1)
+          echo "Downloading: ${LATEST_URL}"
           wget -q "${LATEST_URL}" -O clang.tar.gz
           tar -xzf clang.tar.gz -C clang
 
@@ -28,15 +29,15 @@ jobs:
         run: |
           rm -rf KernelSU drivers/kernelsu
           sed -i '/kernelsu/d' drivers/Kconfig drivers/Makefile
-          DOMAIN_RAW="://githubusercontent.com"
-          REPO_KSUN="KernelSU-Next/KernelSU-Next/next/kernel/setup.sh"
-          curl -LSs "https://${DOMAIN_RAW}/${REPO_KSUN}" | bash -
+          RAW_HOST="://githubusercontent.com"
+          KSUN_PATH="KernelSU-Next/KernelSU-Next/next/kernel/setup.sh"
+          curl -LSs "https://${RAW_HOST}/${KSUN_PATH}" | bash -
 
       - name: Integrasi NoMount Terbaru
         run: |
-          DOMAIN_RAW="://githubusercontent.com"
-          REPO_NM="maxsteeel/nomount/refs/heads/dev/kernel/setup.sh"
-          curl -LSs "https://${DOMAIN_RAW}/${REPO_NM}" | bash -s master
+          RAW_HOST="://githubusercontent.com"
+          NM_PATH="maxsteeel/nomount/refs/heads/dev/kernel/setup.sh"
+          curl -LSs "https://${RAW_HOST}/${NM_PATH}" | bash -s master
 
       - name: Konfigurasi Defconfig
         run: |
@@ -67,9 +68,9 @@ jobs:
 
       - name: Package AnyKernel3 Nexus Lavender
         run: |
-          DOMAIN_GH="github.com"
-          REPO_AK3="projects-nexus/AnyKernel3.git"
-          git clone --depth=1 -b lavender "https://${DOMAIN_GH}/${REPO_AK3}" AnyKernel3
+          GH_HOST="github.com"
+          AK3_PATH="projects-nexus/AnyKernel3.git"
+          git clone --depth=1 -b lavender "https://${GH_HOST}/${AK3_PATH}" AnyKernel3
           rm -rf AnyKernel3/.git
           cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
           cd AnyKernel3
