@@ -17,15 +17,12 @@ jobs:
       - name: Install Dependencies & Toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git gnupg gperf liblz4-tool libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 wget tar zstd jq
-          mkdir -p clang
-          API_HOST="://github.com"
-          LATEST_URL=$(curl -s "https://${API_HOST}/repos/ZyCromerZ/Clang/releases/latest" | jq -r '.assets[] | select(.name | endswith(".tar.gz")) | .browser_download_url' | head -n 1)
-          echo "Downloading: ${LATEST_URL}"
-          wget -q "${LATEST_URL}" -O clang.tar.gz
-          tar -xzf clang.tar.gz -C clang
+          sudo apt-get install -y bc bison build-essential ccache curl flex git gnupg gperf liblz4-tool libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
+          GH_HOST="github.com"
+          CLANG_REPO="EmanuelCN/zyc_clang-14.git"
+          git clone --depth=1 "https://${GH_HOST}/${CLANG_REPO}" clang
 
-      - name: Ganti KernelSU Lama ke KernelSU-Next Terbaru
+      - name: Bersihkan KSU Lama & Pasang KernelSU-Next
         run: |
           rm -rf KernelSU drivers/kernelsu
           sed -i '/kernelsu/d' drivers/Kconfig drivers/Makefile
@@ -39,13 +36,25 @@ jobs:
           NM_PATH="maxsteeel/nomount/refs/heads/dev/kernel/setup.sh"
           curl -LSs "https://${RAW_HOST}/${NM_PATH}" | bash -s master
 
-      - name: Konfigurasi Defconfig
+      - name: Atur Defconfig Nexus Lavender
         run: |
-          DEFCONFIG="vendor/lavender-perf_defconfig"
-          [ ! -f "arch/arm64/configs/${DEFCONFIG}" ] && DEFCONFIG="lavender_defconfig"
+          if [ -f "arch/arm64/configs/vendor/lavender-perf_defconfig" ]; then
+            DEFCONFIG="vendor/lavender-perf_defconfig"
+          elif [ -f "arch/arm64/configs/lavender_defconfig" ]; then
+            DEFCONFIG="lavender_defconfig"
+          else
+            DEFCONFIG=$(cd arch/arm64/configs && find . -name "*lavender*defconfig" | sed 's|^\./||' | head -n 1)
+          fi
+          echo "Menggunakan Defconfig: ${DEFCONFIG}"
           echo "DEFCONFIG_FILE=${DEFCONFIG}" >> $GITHUB_ENV
-          echo "CONFIG_KSU=y" >> "arch/arm64/configs/${DEFCONFIG}"
-          echo "CONFIG_NOMOUNT=y" >> "arch/arm64/configs/${DEFCONFIG}"
+          sed -i '/CONFIG_KSU/d' "arch/arm64/configs/${DEFCONFIG}"
+          sed -i '/CONFIG_NOMOUNT/d' "arch/arm64/configs/${DEFCONFIG}"
+          cat << 'EOF' >> "arch/arm64/configs/${DEFCONFIG}"
+          CONFIG_KSU=y
+          CONFIG_KSU_MANUAL_HOOK=y
+          CONFIG_KSU_KPROBE_HOOK=n
+          CONFIG_NOMOUNT=y
+          EOF
 
       - name: Compile Kernel
         run: |
