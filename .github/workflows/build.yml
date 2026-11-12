@@ -1,4 +1,4 @@
-name: Build Nexus Lavender KSUN + NoMount
+name: Build Nexus Lavender KSUN
 
 on:
   workflow_dispatch:
@@ -38,22 +38,6 @@ jobs:
           sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
           grep -q "syscall_fn_t" arch/arm64/include/asm/syscall.h || sed -i '/#define __ASM_SYSCALL_H/a typedef asmlinkage long (*syscall_fn_t)(const struct pt_regs *);' arch/arm64/include/asm/syscall.h
 
-      - name: Integrasi NoMount Terbaru
-        run: |
-          rm -rf nomount_src fs/nomount drivers/nomount
-          sed -i '/nomount/d' drivers/Kconfig drivers/Makefile fs/Kconfig fs/Makefile
-          GH_HOST="github.com"
-          NM_REPO="maxsteeel/nomount.git"
-          git clone --depth=1 "https://${GH_HOST}/${NM_REPO}" nomount_src
-          mkdir -p fs/nomount
-          cp -f nomount_src/kernel/src/* fs/nomount/
-          echo 'obj-$(CONFIG_NOMOUNT) += nomount/' >> fs/Makefile
-          sed -i '/endmenu/i source "fs/nomount/Kconfig"' fs/Kconfig
-          if [ -f "nomount_src/kernel/setup.sh" ]; then
-            sed -i 's|https://githubusercontent.com|file://'"$PWD"'/nomount_src|g' nomount_src/kernel/setup.sh
-            bash nomount_src/kernel/setup.sh || true
-          fi
-
       - name: Atur Defconfig Nexus Lavender
         run: |
           if [ -f "arch/arm64/configs/vendor/lavender-perf_defconfig" ]; then
@@ -66,13 +50,11 @@ jobs:
           echo "Menggunakan Defconfig: ${DEFCONFIG}"
           echo "DEFCONFIG_FILE=${DEFCONFIG}" >> $GITHUB_ENV
           sed -i '/CONFIG_KSU/d' "arch/arm64/configs/${DEFCONFIG}"
-          sed -i '/CONFIG_NOMOUNT/d' "arch/arm64/configs/${DEFCONFIG}"
           sed -i '/CONFIG_COMPAT_VDSO/d' "arch/arm64/configs/${DEFCONFIG}"
           cat << 'EOF' >> "arch/arm64/configs/${DEFCONFIG}"
           CONFIG_KSU=y
           CONFIG_KSU_MANUAL_HOOK=y
           CONFIG_KSU_KPROBE_HOOK=n
-          CONFIG_NOMOUNT=y
           CONFIG_COMPAT_VDSO=n
           EOF
 
@@ -104,10 +86,10 @@ jobs:
           rm -rf AnyKernel3/.git
           cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
           cd AnyKernel3
-          zip -r9 ../Nexus-Lavender-KSUN-NoMount.zip *
+          zip -r9 ../Nexus-Lavender-KSUN.zip *
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nexus-ksun-${{ github.run_number }}
-          files: Nexus-Lavender-KSUN-NoMount.zip
+          files: Nexus-Lavender-KSUN.zip
