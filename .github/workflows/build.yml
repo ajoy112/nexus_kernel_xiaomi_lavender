@@ -36,6 +36,7 @@ jobs:
           sed -i 's/\$(error -- KernelSU-Next: No hooks were defined.*)/\$(info -- KernelSU-Next: Legacy hooks active)/g' drivers/kernelsu/Kbuild
           sed -i 's/copy_to_iter(KERNEL_SU_RC/copy_to_iter((void *)KERNEL_SU_RC/g' drivers/kernelsu/runtime/ksud_integration.c
           sed -i '1i #include <linux/compat.h>\n#define in_compat_syscall() is_compat_task()' drivers/kernelsu/sulog/event.c
+          sed -i '1i #define ALIGN_DOWN(x, a) __ALIGN_KERNEL((x) - ((a) - 1), (a))' drivers/kernelsu/feature/adb_root.c
           echo 'ccflags-y += -Wno-error -Wno-implicit-function-declaration' >> drivers/kernelsu/Kbuild
 
       - name: Atur Defconfig Nexus Lavender
