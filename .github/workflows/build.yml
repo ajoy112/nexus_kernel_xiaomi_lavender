@@ -22,17 +22,13 @@ jobs:
           CLANG_REPO="EmanuelCN/zyc_clang-14.git"
           git clone --depth=1 "https://${GH_HOST}/${CLANG_REPO}" clang
 
-      - name: Bersihkan KSU Lama & Pasang KernelSU-Next
+      - name: Bersihkan KSU Lama & Pasang KernelSU-Next Legacy (4.4)
         run: |
           rm -rf KernelSU KernelSU-Next drivers/kernelsu
           sed -i '/kernelsu/d' drivers/Kconfig drivers/Makefile
           GH_HOST="github.com"
           KSUN_REPO="KernelSU-Next/KernelSU-Next.git"
-          git clone --depth=1 "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
-          if ! grep -rnq "ksu_handle_execveat" KernelSU-Next/kernel/; then
-            rm -rf KernelSU-Next
-            git clone --depth=1 -b legacy "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
-          fi
+          git clone --depth=1 -b legacy "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next || git clone --depth=1 "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
           ln -sf "$PWD/KernelSU-Next/kernel" "$PWD/drivers/kernelsu"
           echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
           sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
@@ -64,6 +60,7 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           make O=out ${{ env.DEFCONFIG_FILE }}
+          set -o pipefail
           make -j$(nproc) O=out \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -75,7 +72,7 @@ jobs:
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
             STRIP=llvm-strip \
-            LD=ld.lld
+            LD=ld.lld 2>&1 | tee build.log || { echo "=== DETAIL ERROR DITEMUKAN ==="; grep -B 2 -A 5 "error:" build.log; exit 1; }
           ls -lh out/arch/arm64/boot/Image.gz-dtb
 
       - name: Package AnyKernel3 Nexus Lavender
