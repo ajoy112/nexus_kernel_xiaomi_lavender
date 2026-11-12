@@ -35,14 +35,19 @@ jobs:
 
       - name: Integrasi NoMount Terbaru
         run: |
-          rm -rf nomount_src drivers/nomount
-          sed -i '/nomount/d' drivers/Kconfig drivers/Makefile
+          rm -rf nomount_src fs/nomount drivers/nomount
+          sed -i '/nomount/d' drivers/Kconfig drivers/Makefile fs/Kconfig fs/Makefile
           GH_HOST="github.com"
           NM_REPO="maxsteeel/nomount.git"
           git clone --depth=1 "https://${GH_HOST}/${NM_REPO}" nomount_src
-          ln -sf "$PWD/nomount_src/kernel" "$PWD/drivers/nomount"
-          echo 'obj-$(CONFIG_NOMOUNT) += nomount/' >> drivers/Makefile
-          sed -i '/endmenu/i source "drivers/nomount/Kconfig"' drivers/Kconfig
+          mkdir -p fs/nomount
+          cp -f nomount_src/kernel/src/* fs/nomount/
+          echo 'obj-$(CONFIG_NOMOUNT) += nomount/' >> fs/Makefile
+          sed -i '/endmenu/i source "fs/nomount/Kconfig"' fs/Kconfig
+          if [ -f "nomount_src/kernel/setup.sh" ]; then
+            sed -i 's|https://githubusercontent.com|file://'"$PWD"'/nomount_src|g' nomount_src/kernel/setup.sh
+            bash nomount_src/kernel/setup.sh || true
+          fi
 
       - name: Atur Defconfig Nexus Lavender
         run: |
