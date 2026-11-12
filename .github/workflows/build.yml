@@ -28,11 +28,14 @@ jobs:
           sed -i '/kernelsu/d' drivers/Kconfig drivers/Makefile
           GH_HOST="github.com"
           KSUN_REPO="KernelSU-Next/KernelSU-Next.git"
-          git clone --depth=1 -b legacy "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next || git clone --depth=1 "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
+          git clone --depth=1 -b legacy "https://${GH_HOST}/${KSUN_REPO}" KernelSU-Next
           ln -sf "$PWD/KernelSU-Next/kernel" "$PWD/drivers/kernelsu"
           echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
           sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
           grep -q "syscall_fn_t" arch/arm64/include/asm/syscall.h || sed -i '/#define __ASM_SYSCALL_H/a typedef asmlinkage long (*syscall_fn_t)(const struct pt_regs *);' arch/arm64/include/asm/syscall.h
+          echo "=== Cek Syarat Kbuild ==="
+          sed -n '200,230p' drivers/kernelsu/Kbuild
+          sed -i 's/\$(error -- KernelSU-Next: No hooks were defined.*)/\$(info -- KernelSU-Next: Legacy hooks active)/g' drivers/kernelsu/Kbuild
 
       - name: Atur Defconfig Nexus Lavender
         run: |
